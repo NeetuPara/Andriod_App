@@ -51,8 +51,8 @@ class SlmService {
       if (!await directory.exists()) {
         await directory.create(recursive: true);
       }
-      final modelFile = File('${directory.path}/qwen_model_v1.gguf');
-      final mmprojFile = File('${directory.path}/qwen_mmproj_v1.gguf');
+      final modelFile = File('${directory.path}/Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf');
+      final mmprojFile = File('${directory.path}/mmproj-Qwen2.5-VL-3B-Instruct-f16.gguf');
 
       Future<void> ensureAssetCopied(File file, String assetName) async {
          if (!await file.exists() || (await file.stat()).size == 0) {
