@@ -37,10 +37,12 @@ The Windows Desktop version runs an isolated `llama-server.exe` background proce
 
 3. **Download the GGUF Models:**
    * Because the actual 1.5GB+ AI models are too big for GitHub, you must download them manually.
-   * Create this exact folder path on your PC: `C:\Users\<username>\Documents\flutter_app_chat_data`
+   * Create a folder called `flutter_app_chat_data` inside your active Windows **Documents** directory.
+     * *(Note: If you use OneDrive, Windows officially reroutes this to `C:\Users\<username>\OneDrive\Documents\flutter_app_chat_data`)*
    * Download the following two models from the [Unsloth HuggingFace Repository](https://huggingface.co/unsloth/Qwen2.5-VL-3B-Instruct-GGUF/tree/main) and place them in that folder:
      * **Model:** `Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf`
      * **Projector:** `mmproj-Qwen2.5-VL-3B-Instruct-f16.gguf`
+   * *(Alternatively, if you place them in your `assets/` folder, the app will auto-extract them into your active Documents directory on its first launch).*
 
 4. **Run the App in Debug Mode:**
    ```bash
