@@ -105,3 +105,34 @@ If you wish to scale the application for more powerful hardware (or weaker hardw
 - **File:** `lib/src/services/file_processor.dart`
 - **Location:** Line 42 (`if (text.length > 25000)`)
 - *Warning:* If you increase this allowed character length, you **MUST** ensure both your Android `n_ctx` and Desktop `-c` arguments are equally increased to prevent crashes (Desktop) or severe context sliding (Mobile).
+
+---
+
+## 7. Multimodal PDF Architecture & Context Retention
+
+The Edgemind application handles PDF files and image files fundamentally differently, which impacts AI comprehension and future upgrade requirements.
+
+### Text vs Vision Extraction
+When a User uploads an **Image (JPG/PNG)**, the file is passed directly to the Qwen Vision Projector (`mmproj`). The AI "sees" the image natively, exactly as a human does, preserving all formatting, colors, and layout.
+
+When a User uploads a **PDF Document**, the Vision Projector is completely bypassed. Instead, the Flutter `syncfusion_flutter_pdf` library extracts the raw text from the document natively on the mobile CPU. This raw text is silently injected into the user's prompt wrapped in `<<<Attachment Content>>>` tags. 
+* **Benefit:** It is incredibly fast and consumes drastically less RAM (allowing it to run on mobile phones).
+* **Limitation:** Complex medical tables (e.g. CBC counts) often lose their formatting when flattened into plain text, which can occasionally cause the AI to merge or hallucinate absolute numbers.
+
+### PDF Context Retention Methods
+When a user asks multiple questions about the same PDF, the app does **not** duplicate the PDF text in every message (e.g., `[PDF + Q1], [PDF + Q2]`). 
+Instead, the PDF text is injected *only* into the initial message where it was uploaded.
+
+Because the app sends the last 10 messages of the chat history to the `llama-server.exe` simultaneously, the AI reads the history sequentially:
+1. `Message 1:` The massive PDF text + Question 1.
+2. `Message 2:` The AI's previous answer.
+3. `Message 3:` The user's follow-up Question 2.
+
+**The Context Slide Limitation:** If the total history eventually exceeds the 8192-token desktop limit (or 4096 mobile limit), the AI enters a "Context Slide." It will continuously forget the oldest text at the absolute top of the history to make room for newer answers. If a user asks 10 questions about a huge PDF, the AI may eventually forget the first couple of pages of the document!
+
+### Future Action Requirements: Embedded PDF Image Support
+Currently, if a PDF contains embedded images (like a chart or a scanned ID card), `file_processor.dart` completely ignores them. To support PDF images in future patches, the following architecture must be implemented:
+1. Rewrite `_extractPdfText` in `file_processor.dart` to identify embedded image binaries.
+2. Extract the embedded images as raw JPEGs.
+3. Resize the extracted JPEGs to a maximum 512x512 bounding box (to protect mobile RAM).
+4. Base64 encode the JPEGs and dynamically append them to the `messages` array under the `image_url` payload in `slm_service.dart`.
