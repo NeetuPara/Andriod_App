@@ -136,3 +136,29 @@ Currently, if a PDF contains embedded images (like a chart or a scanned ID card)
 2. Extract the embedded images as raw JPEGs.
 3. Resize the extracted JPEGs to a maximum 512x512 bounding box (to protect mobile RAM).
 4. Base64 encode the JPEGs and dynamically append them to the `messages` array under the `image_url` payload in `slm_service.dart`.
+
+
+
+---
+
+## 8. Alternative PDF Extraction Libraries
+
+Currently, the application uses `syncfusion_flutter_pdf`, which is extremely fast and lightweight but does not preserve complex table formatting (it reads invisible text from left to right, ignoring grids/bounding boxes).
+
+If you want to upgrade the app in the future to extract complex tabular data more accurately, consider the following architectural alternatives:
+
+### Option 1: `pdf_text` (Native Flutter)
+This library extracts text line-by-line instead of paragraph-by-paragraph.
+* **Pros:** Might maintain horizontal spacing slightly better than Syncfusion.
+* **Cons:** Still not explicitly designed for "table extraction". If the PDF columns are heavily misaligned, it will still merge the text incorrectly.
+
+### Option 2: OCR (`google_mlkit_text_recognition`)
+Instead of parsing invisible PDF computer text, convert the PDF page into an Image (using a package like `pdfx`), and pass that image through Google's ML Kit OCR.
+* **Pros:** OCR relies on spatial recognition bounding boxes. It is remarkably good at looking at an image, drawing a box around a column, and returning the text separated by proper spaces/tabs.
+* **Cons:** Slower. It requires rendering the PDF to a picture first, then running a local neural network on the phone to read the picture.
+
+### Option 3: Direct Vision Model Inference (The Native Approach)
+Since the application already runs **Qwen2.5-VL-3B-Instruct**, it contains a powerful native Vision Projector that intuitively understands tables and charts natively.
+* **To implement:** Use the `pdfx` package to render the PDF as high-quality JPEG images, and then pipe those JPEGs directly into the Vision Projector (`qwen_mmproj_v1.gguf`) with the prompt: *"Extract the Complete Blood Count table from this image."*
+* **Pros:** 100% accurate table extraction. It completely solves hallucination issues because the AI reads the original visual table layout exactly as a human sees it.
+* **Cons:** Requires writing custom C++ logic in `lib-vlm.cpp` to loop through a PDF, render each page as an image array in memory, and feed it into the `llama.cpp` vision queue. This will also consume significantly more runtime RAM on mobile devices compared to raw text extraction.
